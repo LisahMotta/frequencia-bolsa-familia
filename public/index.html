@@ -308,17 +308,6 @@ select{cursor:pointer}
     </div>
   </div>
 
-  <!-- TURNO PADRÃO (aplicado a todos ao importar) -->
-  <div class="card" id="cardTurnoPadrao" style="display:none">
-    <div class="ct"><span class="ic">⚙️</span> Turno Padrão da Importação</div>
-    <div class="hint">O PDF não informa o turno. Selecione o turno que será aplicado a todos os alunos importados. Você pode alterar individualmente depois.</div>
-    <div class="toggle-row">
-      <button class="tbtn active" id="tpManha" onclick="setTurnoPadrao('manha',this)">🌅 Manhã<br><small style="font-weight:400;font-size:10px">6 aulas/dia</small></button>
-      <button class="tbtn" id="tpTarde" onclick="setTurnoPadrao('tarde',this)">☀️ Tarde<br><small style="font-weight:400;font-size:10px">3 aulas/dia</small></button>
-      <button class="tbtn" id="tpNoite" onclick="setTurnoPadrao('noite',this)">🌙 Noite<br><small style="font-weight:400;font-size:10px">5 aulas/dia</small></button>
-    </div>
-  </div>
-
   <!-- PREVIEW DOS ALUNOS EXTRAÍDOS -->
   <div class="card" id="cardPreview" style="display:none">
     <div class="ct"><span class="ic">👥</span> Alunos Encontrados no PDF</div>
@@ -398,6 +387,11 @@ select{cursor:pointer}
       <button class="tbtn" onclick="setModo('bimestral',this)">Por Bimestre</button>
     </div>
     <div id="cAnual">
+      <div class="toggle-row">
+        <button class="tbtn active" onclick="setTurnoCalc('manha',this)">🌅 Manhã<br><small style="font-weight:400;font-size:10px">6 aulas/dia</small></button>
+        <button class="tbtn" onclick="setTurnoCalc('tarde',this)">☀️ Tarde<br><small style="font-weight:400;font-size:10px">3 aulas/dia</small></button>
+        <button class="tbtn" onclick="setTurnoCalc('noite',this)">🌙 Noite<br><small style="font-weight:400;font-size:10px">5 aulas/dia</small></button>
+      </div>
       <div class="row2">
         <div class="fg"><label>Dias Letivos</label><input type="number" id="cDias" placeholder="Ex: 200" min="1" inputmode="numeric"></div>
         <div class="fg"><label>Faltas</label><input type="number" id="cFaltas" placeholder="Ex: 25" min="0" inputmode="numeric"></div>
@@ -502,7 +496,7 @@ if(typeof pdfjsLib!=='undefined'){
 
 const TURNO_AULAS={manha:6,tarde:3,noite:5};
 const TURNO_LABEL={manha:'Manhã',tarde:'Tarde',noite:'Noite'};
-let alunoAtualId=null, modoCalc='anual', deferredInstall=null;
+let alunoAtualId=null, modoCalc='anual', turnoCalc='manha', deferredInstall=null;
 
 // ═══════════════════════════════════════════════
 // STORAGE
@@ -618,14 +612,6 @@ let alunosExtraidos=[];
 let turnoPadrao='manha';
 let filtroAtualPreview='todos';
 
-function setTurnoPadrao(t,btn){
-  turnoPadrao=t;
-  document.querySelectorAll('#cardTurnoPadrao .tbtn').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
-  alunosExtraidos.forEach(a=>a.turno=t);
-  renderPreview();
-}
-
 // ═══════════════════════════════════════════════
 // LEITURA PDF — FORMULÁRIO MEC BOLSA FAMÍLIA
 // ═══════════════════════════════════════════════
@@ -664,11 +650,10 @@ async function lerPDF(file){
       return;
     }
     document.getElementById('pdfProgress').style.display='none';
-    document.getElementById('cardTurnoPadrao').style.display='block';
     document.getElementById('cardPreview').style.display='block';
     renderPreview();
     toast('✅ '+alunosExtraidos.length+' alunos encontrados no PDF!',4000);
-    setTimeout(()=>document.getElementById('cardTurnoPadrao').scrollIntoView({behavior:'smooth'}),200);
+    setTimeout(()=>document.getElementById('cardPreview').scrollIntoView({behavior:'smooth'}),200);
   }catch(e){
     console.error(e);
     document.getElementById('pdfProgress').style.display='none';
@@ -699,7 +684,7 @@ function extrairTodosAlunos(texto){
     const nascimento=nascM?nascM[1]:'';
     const serieM=bloco.match(/S[eé]rie\s*:\s*([^\n]+)/i);
     const serieRaw=serieM?serieM[1].trim().replace(/\s+/g,' '):'';
-    alunos.push({nome,nis,nascimento,serie:serieRaw,turno:turnoPadrao});
+    alunos.push({nome,nis,nascimento,serie:serieRaw,turno:'manha'});
   }
   const vistos=new Set();
   return alunos.filter(a=>{
@@ -797,7 +782,6 @@ function importarTodos(){
 
 function cancelarImport(){
   alunosExtraidos=[];
-  document.getElementById('cardTurnoPadrao').style.display='none';
   document.getElementById('cardPreview').style.display='none';
   document.getElementById('pdfInput').value='';
 }
@@ -870,16 +854,24 @@ function setModo(m,btn){
   if(m==='bimestral') buildBimGrid();
 }
 
+function setTurnoCalc(t,btn){
+  turnoCalc=t;
+  document.querySelectorAll('#cAnual .toggle-row .tbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  atualizarHintCalc();
+  if(modoCalc==='bimestral') buildBimGrid();
+}
+
 function atualizarHintCalc(){
   const a=getAlunos().find(x=>x.id===alunoAtualId);
   if(!a) return;
   document.getElementById('cHint').textContent=
-    `📌 ${TURNO_LABEL[a.turno]}: ${TURNO_AULAS[a.turno]} aulas/dia × dias letivos`;
+    `📌 ${TURNO_LABEL[turnoCalc]}: ${TURNO_AULAS[turnoCalc]} aulas/dia × dias letivos`;
 }
 
 function buildBimGrid(){
   const a=getAlunos().find(x=>x.id===alunoAtualId);
-  const au=a?TURNO_AULAS[a.turno]:6;
+  const au=TURNO_AULAS[turnoCalc];
   document.getElementById('cBimGrid').innerHTML=['1º','2º','3º','4º'].map((b,i)=>`
     <div class="bim-card">
       <div class="bim-title">${b} Bim · ${au}/dia</div>
@@ -894,7 +886,7 @@ function buildBimGrid(){
 function calcularFreq(){
   const aluno=getAlunos().find(x=>x.id===alunoAtualId);
   if(!aluno){toast('⚠️ Selecione um aluno.');return;}
-  const aulas=TURNO_AULAS[aluno.turno];
+  const aulas=TURNO_AULAS[turnoCalc];
   let totalAulas=0,totalFaltas=0,bimestres=[];
 
   if(modoCalc==='anual'){
@@ -927,7 +919,7 @@ function calcularFreq(){
 
   // Salva histórico
   const h=getHist();
-  h.unshift({id:Date.now(),alunoId:aluno.id,nome:aluno.nome,serie:aluno.serie,turno:aluno.turno,
+  h.unshift({id:Date.now(),alunoId:aluno.id,nome:aluno.nome,serie:aluno.serie,turno:turnoCalc,
     freq:+freq.toFixed(1),totalAulas,totalFaltas,perdeBolsa,perdePeMeia,cor,bimestres,
     data:new Date().toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})});
   if(h.length>100) h.splice(100);
