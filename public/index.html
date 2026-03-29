@@ -289,58 +289,57 @@ select{cursor:pointer}
 
 <!-- ═══════════ IMPORTAR ═══════════ -->
 <div class="view active" id="view-importar">
-  <div class="card">
+
+  <!-- DROP ZONE -->
+  <div class="card" id="cardDrop">
     <div class="ct"><span class="ic">📄</span> Importar PDF do Bolsa Família</div>
-    <div class="hint">Faça upload do PDF gerado pelo sistema. O nome do aluno e dados serão extraídos automaticamente.</div>
+    <div class="hint">Faça upload do formulário completo gerado pelo MEC/Bolsa Família. <strong>Todos os alunos</strong> serão extraídos automaticamente de uma só vez.</div>
     <div class="drop-zone" id="dropZone">
       <input type="file" accept=".pdf" id="pdfInput" onchange="lerPDF(this.files[0])">
       <div class="drop-icon">📂</div>
       <div class="drop-title">Toque para selecionar o PDF</div>
-      <div class="drop-sub">Apenas arquivos .pdf gerados pelo sistema Bolsa Família</div>
+      <div class="drop-sub">Formulário de Acompanhamento de Frequência Escolar — Bolsa Família</div>
     </div>
-    <div id="pdfStatus" style="display:none;margin-top:12px">
-      <div class="ct" style="margin-bottom:6px"><span class="ic">🔍</span> Dados extraídos</div>
-      <div id="pdfEncontrados"></div>
-      <details style="margin-top:8px">
-        <summary style="font-size:11px;color:var(--muted);cursor:pointer">Ver texto bruto do PDF</summary>
-        <div class="pdf-preview" id="pdfTexto"></div>
-      </details>
+    <div id="pdfProgress" style="display:none;margin-top:12px;text-align:center">
+      <div style="font-size:13px;font-weight:600;color:var(--g1);margin-bottom:6px" id="pdfProgressTxt">🔍 Lendo PDF…</div>
+      <div style="height:6px;background:#e2e8f0;border-radius:999px;overflow:hidden">
+        <div id="pdfProgressBar" style="height:100%;background:var(--g3);border-radius:999px;width:0%;transition:width .3s"></div>
+      </div>
     </div>
   </div>
 
-  <div class="card" id="cardConfirmar" style="display:none">
-    <div class="ct"><span class="ic">✅</span> Confirmar / Corrigir Dados</div>
-    <div class="fg">
-      <label>Nome do Aluno</label>
-      <input type="text" id="nomeExtraido" placeholder="Nome identificado no PDF">
+  <!-- TURNO PADRÃO (aplicado a todos ao importar) -->
+  <div class="card" id="cardTurnoPadrao" style="display:none">
+    <div class="ct"><span class="ic">⚙️</span> Turno Padrão da Importação</div>
+    <div class="hint">O PDF não informa o turno. Selecione o turno que será aplicado a todos os alunos importados. Você pode alterar individualmente depois.</div>
+    <div class="toggle-row">
+      <button class="tbtn active" id="tpManha" onclick="setTurnoPadrao('manha',this)">🌅 Manhã<br><small style="font-weight:400;font-size:10px">6 aulas/dia</small></button>
+      <button class="tbtn" id="tpTarde" onclick="setTurnoPadrao('tarde',this)">☀️ Tarde<br><small style="font-weight:400;font-size:10px">3 aulas/dia</small></button>
+      <button class="tbtn" id="tpNoite" onclick="setTurnoPadrao('noite',this)">🌙 Noite<br><small style="font-weight:400;font-size:10px">5 aulas/dia</small></button>
     </div>
-    <div class="row2">
-      <div class="fg"><label>Turma / Série</label><input type="text" id="turmaExtraida" placeholder="Ex: 7º A"></div>
-      <div class="fg"><label>NIS</label><input type="text" id="nisExtraido" placeholder="11 dígitos"></div>
+  </div>
+
+  <!-- PREVIEW DOS ALUNOS EXTRAÍDOS -->
+  <div class="card" id="cardPreview" style="display:none">
+    <div class="ct"><span class="ic">👥</span> Alunos Encontrados no PDF</div>
+    <div id="previewStats" style="margin-bottom:10px"></div>
+
+    <!-- Filtro rápido na preview -->
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn btn-outline" style="font-size:11px;padding:5px 10px" onclick="filtrarPreview('todos')">Todos</button>
+      <button class="btn btn-outline" style="font-size:11px;padding:5px 10px" onclick="filtrarPreview('novo')">🆕 Novos</button>
+      <button class="btn btn-outline" style="font-size:11px;padding:5px 10px" onclick="filtrarPreview('existente')">✅ Já cadastrados</button>
     </div>
-    <div class="row2">
-      <div class="fg">
-        <label>Nível de Ensino</label>
-        <select id="ensinoExtraido">
-          <option value="fundamental">Ensino Fundamental</option>
-          <option value="medio">Ensino Médio</option>
-        </select>
-      </div>
-      <div class="fg">
-        <label>Turno</label>
-        <select id="turnoExtraido">
-          <option value="manha">🌅 Manhã (6/dia)</option>
-          <option value="tarde">☀️ Tarde (3/dia)</option>
-          <option value="noite">🌙 Noite (5/dia)</option>
-        </select>
-      </div>
-    </div>
+
+    <div id="previewLista" style="max-height:380px;overflow-y:auto;margin-bottom:12px"></div>
+
     <div style="display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-primary" style="flex:2;min-width:140px" onclick="cadastrarAluno()">➕ Cadastrar</button>
-      <button class="btn btn-outline" style="flex:1;min-width:110px" onclick="irCalcDireto()">🧮 Calcular já</button>
+      <button class="btn btn-primary" style="flex:2;min-width:140px" onclick="importarTodos()">➕ Cadastrar todos os novos</button>
+      <button class="btn btn-outline" style="flex:1;min-width:100px" onclick="cancelarImport()">✕ Cancelar</button>
     </div>
   </div>
 
+  <!-- CADASTRO MANUAL -->
   <div class="card">
     <div class="ct"><span class="ic">✏️</span> Cadastrar Manualmente</div>
     <div class="fg">
@@ -348,7 +347,7 @@ select{cursor:pointer}
       <input type="text" id="nomeManual" placeholder="Nome completo">
     </div>
     <div class="row2">
-      <div class="fg"><label>Turma</label><input type="text" id="turmaManual" placeholder="Ex: 8º B"></div>
+      <div class="fg"><label>Turma / Série</label><input type="text" id="turmaManual" placeholder="Ex: 8º B"></div>
       <div class="fg"><label>NIS (opcional)</label><input type="text" id="nisManual" placeholder="11 dígitos"></div>
     </div>
     <div class="row2">
@@ -587,73 +586,118 @@ dz.addEventListener('drop',e=>{
 });
 
 // ═══════════════════════════════════════════════
-// LEITURA PDF
+// ESTADO DA IMPORTAÇÃO
+// ═══════════════════════════════════════════════
+let alunosExtraidos=[];
+let turnoPadrao='manha';
+let filtroAtualPreview='todos';
+
+function setTurnoPadrao(t,btn){
+  turnoPadrao=t;
+  document.querySelectorAll('#cardTurnoPadrao .tbtn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  alunosExtraidos.forEach(a=>a.turno=t);
+  renderPreview();
+}
+
+// ═══════════════════════════════════════════════
+// LEITURA PDF — FORMULÁRIO MEC BOLSA FAMÍLIA
 // ═══════════════════════════════════════════════
 async function lerPDF(file){
   if(!file) return;
   if(typeof pdfjsLib==='undefined'){toast('⚠️ Biblioteca PDF indisponível. Verifique a conexão.');return;}
-  toast('🔍 Lendo PDF…',5000);
+  document.getElementById('pdfProgress').style.display='block';
+  document.getElementById('pdfProgressBar').style.width='10%';
+  document.getElementById('pdfProgressTxt').textContent='🔍 Abrindo PDF…';
   try{
     const buf=await file.arrayBuffer();
     const pdf=await pdfjsLib.getDocument({data:buf}).promise;
-    let texto='';
-    for(let i=1;i<=pdf.numPages;i++){
+    const total=pdf.numPages;
+    let textoCompleto='';
+    for(let i=1;i<=total;i++){
       const pg=await pdf.getPage(i);
       const tc=await pg.getTextContent();
-      texto+=tc.items.map(x=>x.str).join(' ')+'\n';
+      let linhas=[], ultimoY=null;
+      for(const item of tc.items){
+        if(ultimoY!==null&&Math.abs(item.transform[5]-ultimoY)>5) linhas.push('\n');
+        linhas.push(item.str);
+        ultimoY=item.transform[5];
+      }
+      textoCompleto+=linhas.join(' ')+'\n';
+      const pct=Math.round((i/total)*80)+10;
+      document.getElementById('pdfProgressBar').style.width=pct+'%';
+      document.getElementById('pdfProgressTxt').textContent='🔍 Lendo página '+i+' de '+total+'…';
     }
-    document.getElementById('pdfTexto').textContent=texto.trim()||'(Sem texto extraído)';
-    document.getElementById('pdfStatus').style.display='block';
-
-    const ex=extrairDados(texto);
-    document.getElementById('nomeExtraido').value=ex.nome;
-    document.getElementById('nisExtraido').value=ex.nis;
-    if(ex.turno) document.getElementById('turnoExtraido').value=ex.turno;
-    if(ex.ensino) document.getElementById('ensinoExtraido').value=ex.ensino;
-    document.getElementById('turmaExtraida').value=ex.turma;
-
-    const itens=[];
-    if(ex.nome) itens.push(`✅ <strong>Nome:</strong> ${ex.nome}`);
-    else itens.push('⚠️ <strong>Nome:</strong> não identificado — preencha manualmente');
-    if(ex.nis) itens.push(`✅ <strong>NIS:</strong> ${ex.nis}`);
-    if(ex.turno) itens.push(`✅ <strong>Turno:</strong> ${TURNO_LABEL[ex.turno]}`);
-    if(ex.turma) itens.push(`✅ <strong>Turma:</strong> ${ex.turma}`);
-    if(ex.ensino) itens.push(`✅ <strong>Ensino:</strong> ${ex.ensino==='medio'?'Médio':'Fundamental'}`);
-
-    document.getElementById('pdfEncontrados').innerHTML=
-      `<div style="font-size:12px;line-height:2;color:var(--text)">${itens.join('<br>')}</div>`;
-    document.getElementById('cardConfirmar').style.display='block';
-    toast('✅ PDF lido! Confira os dados.');
+    document.getElementById('pdfProgressTxt').textContent='⚙️ Extraindo alunos…';
+    document.getElementById('pdfProgressBar').style.width='95%';
+    alunosExtraidos=extrairTodosAlunos(textoCompleto);
+    document.getElementById('pdfProgressBar').style.width='100%';
+    if(!alunosExtraidos.length){
+      toast('⚠️ Nenhum aluno encontrado. Verifique se é o formulário correto.');
+      document.getElementById('pdfProgress').style.display='none';
+      return;
+    }
+    document.getElementById('pdfProgress').style.display='none';
+    document.getElementById('cardTurnoPadrao').style.display='block';
+    document.getElementById('cardPreview').style.display='block';
+    renderPreview();
+    toast('✅ '+alunosExtraidos.length+' alunos encontrados no PDF!',4000);
+    setTimeout(()=>document.getElementById('cardTurnoPadrao').scrollIntoView({behavior:'smooth'}),200);
   }catch(e){
     console.error(e);
+    document.getElementById('pdfProgress').style.display='none';
     toast('❌ Erro ao ler PDF: '+e.message);
   }
 }
 
-function extrairDados(texto){
-  let nome='',nis='',turno='',ensino='',turma='';
-  const nisM=texto.match(/\b(\d{11})\b/);
-  if(nisM) nis=nisM[1];
+// ═══════════════════════════════════════════════
+// EXTRAÇÃO — PADRÃO REAL DO FORMULÁRIO MEC
+// Nome: NOME COMPLETO
+// Dt. Nasc.: 03/03/2018
+// NIS: 23818123418
+// Série: 3º ano Ensino Fundamental
+// ═══════════════════════════════════════════════
+function extrairTodosAlunos(texto){
+  const alunos=[];
+  const blocos=texto.split(/(?=Nome\s*:\s+[A-ZÁÉÍÓÚÀÃÕÂÊÔÇÜ])/i);
+  for(const bloco of blocos){
+    const nomeM=bloco.match(/Nome\s*:\s+([A-ZÁÉÍÓÚÀÃÕÂÊÔÇÜ][A-ZÁÉÍÓÚÀÃÕÂÊÔÇÜ\s]{2,60}?)(?:\s+Dt\.?|\s+NIS|\s+S[eé]rie|\s*\n)/i);
+    if(!nomeM) continue;
+    const nomeRaw=nomeM[1].trim().replace(/\s+/g,' ');
+    if(nomeRaw.length<4) continue;
+    if(/MALBA|ESCOLA|INEP|DIRETOR|PROGRAMA|FREQUENC|ACOMPANHA/i.test(nomeRaw)) continue;
+    const nome=titleCase(nomeRaw);
+    const nisM=bloco.match(/NIS\s*:\s*(\d{11})/i);
+    const nis=nisM?nisM[1]:'';
+    const nascM=bloco.match(/Dt\.?\s*Nasc\.?\s*:\s*(\d{2}\/\d{2}\/\d{4})/i);
+    const nascimento=nascM?nascM[1]:'';
+    const serieM=bloco.match(/S[eé]rie\s*:\s*([^\n]+)/i);
+    const serieRaw=serieM?serieM[1].trim().replace(/\s+/g,' '):'';
+    const {ensino,turma}=classificarSerie(serieRaw);
+    alunos.push({nome,nis,nascimento,turma,ensino,turno:turnoPadrao,serieOriginal:serieRaw});
+  }
+  const vistos=new Set();
+  return alunos.filter(a=>{
+    const k=a.nome.toLowerCase();
+    if(vistos.has(k)) return false;
+    vistos.add(k);
+    return true;
+  });
+}
 
-  const padroes=[
-    /NOME\s+DO\s+BENEFICI[AÁ]RIO[:\s]+([A-ZÀ-Ú][A-ZÀ-Úa-zà-ú\s]{3,50})/i,
-    /ALUNO[:\s]+([A-ZÀ-Ú][A-ZÀ-Úa-zà-ú\s]{3,50})/i,
-    /ESTUDANTE[:\s]+([A-ZÀ-Ú][A-ZÀ-Úa-zà-ú\s]{3,50})/i,
-    /NOME[:\s]+([A-ZÀ-Ú][A-ZÀ-Úa-zà-ú\s]{3,50})/i,
-    /BENEFICI[AÁ]RIO[:\s]+([A-ZÀ-Ú][A-ZÀ-Úa-zà-ú\s]{3,50})/i,
-  ];
-  for(const p of padroes){const m=texto.match(p);if(m){nome=titleCase(m[1].trim());break;}}
-
-  if(/manh[ãa]|matutino/i.test(texto)) turno='manha';
-  else if(/tarde|vespertino/i.test(texto)) turno='tarde';
-  else if(/noite|noturno/i.test(texto)) turno='noite';
-
-  if(/ensino\s+m[eé]dio|m[eé]dio/i.test(texto)) ensino='medio';
-  else if(/fundamental/i.test(texto)) ensino='fundamental';
-
-  const tm=texto.match(/(\d+[°º]\s*(?:ano|série|serie)\s*[a-z]?|\d+[°º]\s*[A-Z])/i);
-  if(tm) turma=tm[1].trim();
-  return{nome,nis,turno,ensino,turma};
+function classificarSerie(serie){
+  if(!serie||serie==='Não informada') return{ensino:'fundamental',turma:'—'};
+  if(/ensino\s+m[eé]dio|série\s+do\s+ensino\s+m[eé]dio/i.test(serie)){
+    const n=serie.match(/(\d+)[ªº]/);
+    return{ensino:'medio',turma:n?n[1]+'ª série EM':'Ensino Médio'};
+  }
+  if(/ensino\s+fundamental|ano\s+ensino/i.test(serie)){
+    const n=serie.match(/(\d+)[ºo°]/);
+    return{ensino:'fundamental',turma:n?n[1]+'º ano EF':'Ens. Fundamental'};
+  }
+  if(/jardim|pré|pre/i.test(serie)) return{ensino:'fundamental',turma:serie.trim().slice(0,20)};
+  const n=serie.match(/(\d+)/);
+  return{ensino:'fundamental',turma:n?n[1]+'º':serie.trim().slice(0,20)};
 }
 
 function titleCase(s){
@@ -662,58 +706,81 @@ function titleCase(s){
 }
 
 // ═══════════════════════════════════════════════
-// CADASTRO
+// RENDER PREVIEW DA IMPORTAÇÃO
 // ═══════════════════════════════════════════════
-function cadastrarAluno(){
-  const nome=document.getElementById('nomeExtraido').value.trim();
-  if(!nome){toast('⚠️ Informe o nome do aluno.');return;}
-  _cadastrar({
-    nome,
-    turma:document.getElementById('turmaExtraida').value.trim()||'—',
-    ensino:document.getElementById('ensinoExtraido').value,
-    turno:document.getElementById('turnoExtraido').value,
-    nis:document.getElementById('nisExtraido').value.trim()||'',
+function renderPreview(){
+  const cadastrados=getAlunos();
+  const nomesExist=new Set(cadastrados.map(a=>a.nome.toLowerCase()));
+  let lista=alunosExtraidos;
+  if(filtroAtualPreview==='novo') lista=lista.filter(a=>!nomesExist.has(a.nome.toLowerCase()));
+  if(filtroAtualPreview==='existente') lista=lista.filter(a=>nomesExist.has(a.nome.toLowerCase()));
+  const novos=alunosExtraidos.filter(a=>!nomesExist.has(a.nome.toLowerCase())).length;
+  const existentes=alunosExtraidos.length-novos;
+  document.getElementById('previewStats').innerHTML=
+    '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">'+
+    '<div class="stat-box"><div class="stat-num">'+alunosExtraidos.length+'</div><div class="stat-label">Extraídos</div></div>'+
+    '<div class="stat-box"><div class="stat-num" style="color:var(--g1)">'+novos+'</div><div class="stat-label">Novos</div></div>'+
+    '<div class="stat-box"><div class="stat-num" style="color:var(--muted)">'+existentes+'</div><div class="stat-label">Já cadastrados</div></div>'+
+    '</div>';
+  if(!lista.length){
+    document.getElementById('previewLista').innerHTML='<div class="empty"><div class="ei">🔍</div><p>Nenhum aluno neste filtro.</p></div>';
+    return;
+  }
+  document.getElementById('previewLista').innerHTML=lista.map(a=>{
+    const jaExiste=nomesExist.has(a.nome.toLowerCase());
+    const idx=alunosExtraidos.indexOf(a);
+    const ensinoLabel=a.ensino==='medio'?'Médio':'Fundamental';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f1f5f9">'+
+      '<div style="flex:1;min-width:0">'+
+      '<div style="font-weight:600;font-size:12px;color:'+(jaExiste?'var(--muted)':'var(--text)')+'">'+a.nome+'</div>'+
+      '<div style="font-size:10px;color:var(--muted);margin-top:1px">'+a.turma+' · '+ensinoLabel+(a.nis?' · NIS: '+a.nis:'')+'</div>'+
+      '</div>'+
+      '<div style="flex-shrink:0">'+
+      (jaExiste
+        ? '<span class="chip" style="background:#f1f5f9;color:var(--muted)">✅ Existente</span>'
+        : '<button class="btn btn-outline" style="font-size:10px;padding:4px 8px" onclick="cadastrarUm('+idx+')">➕</button>'
+      )+
+      '</div></div>';
+  }).join('');
+}
+
+function filtrarPreview(f){filtroAtualPreview=f;renderPreview();}
+
+function cadastrarUm(idx){
+  const a=alunosExtraidos[idx];
+  if(!a) return;
+  _cadastrar({nome:a.nome,turma:a.turma,ensino:a.ensino,turno:a.turno,nis:a.nis,nascimento:a.nascimento});
+  renderPreview();
+}
+
+function importarTodos(){
+  const cadastrados=getAlunos();
+  const nomesExist=new Set(cadastrados.map(a=>a.nome.toLowerCase()));
+  const novos=alunosExtraidos.filter(a=>!nomesExist.has(a.nome.toLowerCase()));
+  if(!novos.length){toast('ℹ️ Todos os alunos já estão cadastrados.');return;}
+  const lista=getAlunos();
+  const agora=new Date().toLocaleDateString('pt-BR');
+  novos.forEach(a=>{
+    lista.push({id:Date.now()+Math.random(),nome:a.nome,turma:a.turma,ensino:a.ensino,
+      turno:a.turno,nis:a.nis||'',nascimento:a.nascimento||'',
+      status:'ativo',obs:'',statusData:'',cadastro:agora});
   });
-  document.getElementById('cardConfirmar').style.display='none';
-  document.getElementById('pdfStatus').style.display='none';
+  salvarAlunos(lista);
+  toast('✅ '+novos.length+' alunos cadastrados com sucesso!',4000);
+  cancelarImport();
+  renderStats();
+}
+
+function cancelarImport(){
+  alunosExtraidos=[];
+  document.getElementById('cardTurnoPadrao').style.display='none';
+  document.getElementById('cardPreview').style.display='none';
   document.getElementById('pdfInput').value='';
 }
 
-function cadastrarManual(){
-  const nome=document.getElementById('nomeManual').value.trim();
-  if(!nome){toast('⚠️ Informe o nome do aluno.');return;}
-  _cadastrar({
-    nome,
-    turma:document.getElementById('turmaManual').value.trim()||'—',
-    ensino:document.getElementById('ensinoManual').value,
-    turno:document.getElementById('turnoManual').value,
-    nis:document.getElementById('nisManual').value.trim()||'',
-  });
-  document.getElementById('nomeManual').value='';
-  document.getElementById('turmaManual').value='';
-  document.getElementById('nisManual').value='';
-}
-
-function _cadastrar(dados){
-  const lista=getAlunos();
-  if(lista.find(a=>a.nome.toLowerCase()===dados.nome.toLowerCase())){
-    toast('⚠️ Aluno já cadastrado com esse nome.');return;
-  }
-  lista.push({id:Date.now(),...dados,status:'ativo',obs:'',statusData:'',cadastro:new Date().toLocaleDateString('pt-BR')});
-  salvarAlunos(lista);
-  toast(`✅ ${dados.nome} cadastrado!`);
-}
-
-function irCalcDireto(){
-  const nome=document.getElementById('nomeExtraido').value.trim();
-  if(nome){
-    document.getElementById('buscaCalc').value=nome;
-    selecionarPorNome(nome);
-  }
-  goView('calcular');
-  document.querySelectorAll('.bnav-btn')[1].classList.add('active');
-  document.querySelectorAll('.bnav-btn')[0].classList.remove('active');
-}
+// ═══════════════════════════════════════════════
+// CADASTRO MANUAL
+// ═══════════════════════════════════════════════
 
 // ═══════════════════════════════════════════════
 // AUTOCOMPLETE
