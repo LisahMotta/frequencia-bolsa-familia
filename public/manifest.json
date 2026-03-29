@@ -1,0 +1,36 @@
+{
+  "name": "Frequência Bolsa Família",
+  "short_name": "Frequência BF",
+  "description": "Calculadora de frequência escolar para Bolsa Família e Pé-de-Meia",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f0fdf4",
+  "theme_color": "#0a5c3a",
+  "lang": "pt-BR",
+  "categories": ["education", "productivity"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Calcular Frequência",
+      "short_name": "Calcular",
+      "description": "Calcular frequência de um aluno",
+      "url": "/?aba=calcular",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
